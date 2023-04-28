@@ -4,11 +4,23 @@
 
 #define BUFFER_SIZE 512
 
-void ReadFromFile(char *filename);
+struct recordRequest
+{
+    float arrivalTime;
+    float trackTime;
+    float sectorRequest;
+    float responseTime;
+};
+
+
+void SortLineData(char * buf)
+{
+    
+}
 
 void ReadFromFile(char *filename)
 {
-    char buffer[BUFFER_SIZE+1];
+    char lineBuffer[BUFFER_SIZE];
 
     char ch;
     FILE *f; 
@@ -21,14 +33,14 @@ void ReadFromFile(char *filename)
     }
     else
     {
-        do
+        do 
         {
             ch = fgetc(f);
-            strncat(buffer, &ch, 1);
+            strncat(lineBuffer, &ch, 1);
             printf("%c", ch);
         } while (ch != EOF);
 
-        printf("\n%s\n", buffer);
+        printf("\n\nBuffer contents:\n%s", lineBuffer);
     }
     
     fclose(f);
