@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #define BUFFER_SIZE 512
 
@@ -10,17 +11,62 @@ typedef struct recordRequest recordRequest;
 //variable to keep track of the number of records
 int recordCount = 0;
 
-//list for storing the recordRequest structs
-recordRequest recordRequestList[50];
-
 //define the recordRequest struct
 struct recordRequest
 {
+    //arrival time of request
     float arrivalTime;
-    float trackTime;
+    //track requested
+    float trackRequest;
+    //sector requested
     float sectorRequest;
+    //total response time for this job
     float responseTime;
 };
+
+//list for storing the recordRequest structs
+recordRequest recordRequestList[50];
+
+void MathComputations(recordRequest list[])
+{
+    float meanValue = 0;
+    float varianceValue = 0;
+    float sum = 0;
+    float stdDevValue= 0;
+
+    for (int recordIdx = 0; recordIdx < recordCount; recordIdx++)
+    {
+        sum += list[recordIdx].responseTime;
+        varianceValue += pow(list[recordIdx].responseTime, 2); 
+    }
+    
+    meanValue = sum / recordCount;
+    varianceValue = (varianceValue / recordCount) - pow(meanValue, 2);
+    stdDevValue = sqrtf(varianceValue);
+
+    printf("\nAverage: %f \nVariance: %f\nStd. Deviation: %f\n", meanValue, varianceValue, stdDevValue);
+}
+
+void SortRecordRequestList()
+{
+    //sort the recordRequestList by arrivalTime
+    //use bubble sort
+    int i, j;
+    recordRequest temp;
+
+    for (i = 0; i < recordCount - 1; i++)
+    {
+        for (j = 0; j < recordCount - i - 1; j++)
+        {
+            if (recordRequestList[j].arrivalTime > recordRequestList[j + 1].arrivalTime)
+            {
+                temp = recordRequestList[j];
+                recordRequestList[j] = recordRequestList[j + 1];
+                recordRequestList[j + 1] = temp;
+            }
+        }
+    }
+}
 
 void SortLineData(char * buf)
 {
@@ -42,7 +88,7 @@ void SortLineData(char * buf)
 
         if (i == 0)
         {
-            record.trackTime = atof(token);
+            record.trackRequest = atof(token);
         }
         else if (i == 1)
         {
@@ -54,7 +100,7 @@ void SortLineData(char * buf)
 
     //put data into respective record
     recordRequestList[recordCount].arrivalTime = record.arrivalTime;
-    recordRequestList[recordCount].trackTime = record.trackTime;
+    recordRequestList[recordCount].trackRequest = record.trackRequest;
     recordRequestList[recordCount].sectorRequest = record.sectorRequest;
     //increment the recordCount
     (*recordCountPtr)++; 
@@ -88,11 +134,6 @@ void ReadFromFile(char *filename)
             SortLineData(lineBuffer);
         }
     }
-
-    for (int i = 0; i < 10; i++)
-    {
-        printf("\nArrival: %f Track: %f Sector: %f", recordRequestList[i].arrivalTime, recordRequestList[i].trackTime, recordRequestList[i].sectorRequest);
-    }
         
     //close file
     fclose(f);
@@ -100,10 +141,104 @@ void ReadFromFile(char *filename)
 
 void FCFSAlgorithm()
 {
+    int currentTrack = 0;
+    int currentSector = 0;
+    float seekTime = 0; 
+    float transferTime = 0;
+    float sectorTransferTime = 0.5;  
+
+    SortRecordRequestList();
+
     for (int i = 0; i < recordCount; i++)
     {
-        
+        transferTime = 0, seekTime = 0;
+        if (recordRequestList[i].trackRequest == currentTrack)
+        {
+            if (recordRequestList[i].sectorRequest > currentSector)
+            {
+                //include if the track is the same?
+                seekTime += 12;
+
+                transferTime += ((recordRequestList[i].sectorRequest - currentSector) * sectorTransferTime);
+
+                currentSector = recordRequestList[i].sectorRequest;
+
+                recordRequestList[i].responseTime += (seekTime + transferTime);
+            }
+            else if (recordRequestList[i].sectorRequest < currentSector)
+            {
+                //include if the track is the same? 
+                seekTime += 12; 
+
+                transferTime += ((currentSector - recordRequestList[i].sectorRequest) * sectorTransferTime);
+
+                recordRequestList[i].responseTime += (seekTime + transferTime);
+            }
+            else
+            {
+                seekTime += 12;
+
+                recordRequestList[i].responseTime += (seekTime + transferTime);
+            }
+        }
+        else if(recordRequestList[i].trackRequest > currentTrack)
+        {
+            if (recordRequestList[i].sectorRequest > currentSector)
+            {
+                seekTime += (12 + 0.1 * (recordRequestList[i].trackRequest - currentTrack));
+
+                transferTime += ((recordRequestList[i].sectorRequest - currentSector) * sectorTransferTime);
+
+                currentSector = recordRequestList[i].sectorRequest;
+
+                recordRequestList[i].responseTime += (seekTime + transferTime);
+            }
+            else if (recordRequestList[i].sectorRequest < currentSector)
+            {
+                seekTime += (12 + 0.1 * (recordRequestList[i].trackRequest - currentTrack)); 
+
+                transferTime += ((currentSector - recordRequestList[i].sectorRequest) * sectorTransferTime);
+
+                recordRequestList[i].responseTime += (seekTime + transferTime);
+            }
+            else
+            {
+                seekTime += (12 + 0.1 * (recordRequestList[i].trackRequest - currentTrack));
+
+                recordRequestList[i].responseTime += (seekTime + transferTime);
+            }
+        }
+        else if(recordRequestList[i].trackRequest < currentTrack)
+        {
+            if (recordRequestList[i].sectorRequest > currentSector)
+            {
+                seekTime += (12 + 0.1 * (currentTrack - recordRequestList[i].trackRequest));
+
+                transferTime += ((recordRequestList[i].sectorRequest - currentSector) * sectorTransferTime);
+
+                currentSector = recordRequestList[i].sectorRequest;
+
+                recordRequestList[i].responseTime += (seekTime + transferTime);
+            }
+            else if (recordRequestList[i].sectorRequest < currentSector)
+            {
+                seekTime += (12 + 0.1 * (currentTrack - recordRequestList[i].trackRequest));
+
+                transferTime += ((currentSector - recordRequestList[i].sectorRequest) * sectorTransferTime);
+
+                recordRequestList[i].responseTime += (seekTime + transferTime);
+            }  
+            else
+            {
+                seekTime += (12 + 0.1 * (currentTrack - recordRequestList[i].trackRequest));
+
+                recordRequestList[i].responseTime += (seekTime + transferTime);
+            }
+        }
     }
-    
+
+    printf("\nSeek time total: %f,\nTransfer time total: %f", seekTime, transferTime);
+
+    MathComputations(recordRequestList);
 }
 
