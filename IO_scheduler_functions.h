@@ -44,7 +44,7 @@ void MathComputations(recordRequest list[])
     varianceValue = (varianceValue / recordCount) - pow(meanValue, 2);
     stdDevValue = sqrtf(varianceValue);
 
-    printf("\nAverage: %f \nVariance: %f\nStd. Deviation: %f\n", meanValue, varianceValue, stdDevValue);
+    printf("\nAverage: %f \nVariance: %f\nStd. Deviation: %f\nSum: %f\n", meanValue, varianceValue, stdDevValue, sum);
 }
 
 void SortRecordRequestList()
@@ -98,7 +98,7 @@ void SortLineData(char * buf)
         i++;   
     }
 
-    //put data into respective record
+    //put data into respective record request
     recordRequestList[recordCount].arrivalTime = record.arrivalTime;
     recordRequestList[recordCount].trackRequest = record.trackRequest;
     recordRequestList[recordCount].sectorRequest = record.sectorRequest;
@@ -141,90 +141,139 @@ void ReadFromFile(char *filename)
 
 void FCFSAlgorithm()
 {
-    int currentTrack = 0;
-    int currentSector = 0;
+    /***Variable definitions***/
+    float currentTrack = 0;
+    float currentSector = 0;
     float seekTime = 0; 
     float transferTime = 0;
-    float sectorTransferTime = 0.5;  
+    float sectorTransferTime = 1.2;
 
+    /*the time it takes to rotate around the disk over the number of sectors on 
+    the disk: 5/9 = 0.5*/
+    float diskRotateTime = 0.5;
+
+    //sort the list according to arrival time
     SortRecordRequestList();
 
     for (int i = 0; i < recordCount; i++)
     {
-        transferTime = 0, seekTime = 0;
+        //print the requested track and sector
+        printf("\nTrack: %f\nSector: %f\n", recordRequestList[i].trackRequest, recordRequestList[i].sectorRequest);
+        //the track request is the same as the current track position
         if (recordRequestList[i].trackRequest == currentTrack)
         {
+            //the sector request is greater than the current sector position
             if (recordRequestList[i].sectorRequest > currentSector)
             {
-                //include if the track is the same?
-                seekTime += 12;
+                //calculate the transfer time
+                transferTime += ((10 - currentSector) - recordRequestList[i].sectorRequest) * sectorTransferTime;
+                //calculate the disk rotation time and add to total transfer time
+                transferTime += ((10 - currentSector) - recordRequestList[i].sectorRequest) * diskRotateTime;
 
-                transferTime += ((recordRequestList[i].sectorRequest - currentSector) * sectorTransferTime);
-
+                //update the current sector position
                 currentSector = recordRequestList[i].sectorRequest;
-
+                //update the response time
                 recordRequestList[i].responseTime += (seekTime + transferTime);
             }
+            //the sector request is behind the current sector
             else if (recordRequestList[i].sectorRequest < currentSector)
             {
-                //include if the track is the same? 
-                seekTime += 12; 
-
-                transferTime += ((currentSector - recordRequestList[i].sectorRequest) * sectorTransferTime);
-
+                //find the number of sectors traveled to get to the requested sector
+                transferTime += ((10 - currentSector) + recordRequestList[i].sectorRequest) * sectorTransferTime;
+                //calculate the disk rotation time and add to total transfer time
+                transferTime += ((10 - currentSector) + recordRequestList[i].sectorRequest) * diskRotateTime;
+                
+                //update the current sector position
                 recordRequestList[i].responseTime += (seekTime + transferTime);
             }
             else
             {
-                seekTime += 12;
-
+                //update the response time
                 recordRequestList[i].responseTime += (seekTime + transferTime);
             }
         }
+        //the track request is in another track
         else if(recordRequestList[i].trackRequest > currentTrack)
         {
+            //the requested sector is ahead of the current sector
             if (recordRequestList[i].sectorRequest > currentSector)
-            {
-                seekTime += (12 + 0.1 * (recordRequestList[i].trackRequest - currentTrack));
+            {   
+                //print current track and sector
+                printf("\nCurrent Track: %f\nCurrent Sector: %f\n", currentTrack, currentSector);
+                //calculate the seek time
+                seekTime = (12 + 0.1 * (recordRequestList[i].trackRequest - currentTrack));
 
+                //calculate the transfer time
                 transferTime += ((recordRequestList[i].sectorRequest - currentSector) * sectorTransferTime);
-
+                //calculate the disk rotation time and add to total transfer time
+                transferTime += ((recordRequestList[i].sectorRequest - currentSector) * diskRotateTime);
+                
+                //update the current sector position
                 currentSector = recordRequestList[i].sectorRequest;
 
+                //update the current track position
                 recordRequestList[i].responseTime += (seekTime + transferTime);
             }
+            //the requested sector is behind the current sector
             else if (recordRequestList[i].sectorRequest < currentSector)
             {
+                //calculate the seek time
                 seekTime += (12 + 0.1 * (recordRequestList[i].trackRequest - currentTrack)); 
 
-                transferTime += ((currentSector - recordRequestList[i].sectorRequest) * sectorTransferTime);
-
+                //calculate the transfer time
+                transferTime += ((10 - currentSector) + recordRequestList[i].sectorRequest) * sectorTransferTime;
+                //calculate the disk rotation time and add to total transfer time
+                transferTime += ((10 - currentSector) + recordRequestList[i].sectorRequest) * diskRotateTime;
+                
+                //update the current sector position
+                currentSector = recordRequestList[i].sectorRequest;
+                //update the current track position
+                currentTrack = recordRequestList[i].trackRequest;
+                //update the response time
                 recordRequestList[i].responseTime += (seekTime + transferTime);
             }
             else
-            {
+            {   
+                //calculate the seek time
                 seekTime += (12 + 0.1 * (recordRequestList[i].trackRequest - currentTrack));
 
+                //update the current track position
+                currentTrack = recordRequestList[i].trackRequest;
+                //update the response time
                 recordRequestList[i].responseTime += (seekTime + transferTime);
             }
         }
+        //the requested track is less than the current track
         else if(recordRequestList[i].trackRequest < currentTrack)
         {
+            //the requested sector is ahead of the current sector
             if (recordRequestList[i].sectorRequest > currentSector)
             {
+                //88 73 5
+                //calculate the seek time
                 seekTime += (12 + 0.1 * (currentTrack - recordRequestList[i].trackRequest));
-
+                //calculate the transfer time
                 transferTime += ((recordRequestList[i].sectorRequest - currentSector) * sectorTransferTime);
-
+                //calculate the disk rotation time and add to total transfer time
+                transferTime += ((recordRequestList[i].sectorRequest - currentSector) * diskRotateTime);
+                //update the current sector position
                 currentSector = recordRequestList[i].sectorRequest;
-
+                //update the current track position
                 recordRequestList[i].responseTime += (seekTime + transferTime);
             }
+            //the requested sector is behind the current sector
             else if (recordRequestList[i].sectorRequest < currentSector)
             {
+                //calculate the seek time
                 seekTime += (12 + 0.1 * (currentTrack - recordRequestList[i].trackRequest));
+                //calculate the transfer time
+                transferTime += ((10 - currentSector) + recordRequestList[i].sectorRequest) * sectorTransferTime;
+                //calculate the disk rotation time and add to total transfer time
+                transferTime += ((10 - currentSector) + recordRequestList[i].sectorRequest) * diskRotateTime;
+        
+                currentSector = recordRequestList[i].sectorRequest;
 
-                transferTime += ((currentSector - recordRequestList[i].sectorRequest) * sectorTransferTime);
+                currentTrack = recordRequestList[i].trackRequest;
 
                 recordRequestList[i].responseTime += (seekTime + transferTime);
             }  
@@ -232,12 +281,16 @@ void FCFSAlgorithm()
             {
                 seekTime += (12 + 0.1 * (currentTrack - recordRequestList[i].trackRequest));
 
+                currentTrack = recordRequestList[i].trackRequest;
+
                 recordRequestList[i].responseTime += (seekTime + transferTime);
             }
         }
+        printf("\nSeek time: %f\nTransfer time: %f \nTime: %f\n", seekTime, transferTime, recordRequestList[i].responseTime);
+        transferTime = 0, seekTime = 0;
     }
 
-    printf("\nSeek time total: %f,\nTransfer time total: %f", seekTime, transferTime);
+    printf("\nSum: %f\nSeek time total: %f,\nTransfer time total: %f,", seekTime, transferTime);
 
     MathComputations(recordRequestList);
 }
