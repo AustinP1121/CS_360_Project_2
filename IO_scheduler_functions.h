@@ -7,6 +7,12 @@
 //define type for the recordRequest struct
 typedef struct recordRequest recordRequest;
 
+//variable to keep track of the number of records
+int recordCount = 0;
+
+//list for storing the recordRequest structs
+recordRequest recordRequestList[50];
+
 //define the recordRequest struct
 struct recordRequest
 {
@@ -16,18 +22,10 @@ struct recordRequest
     float responseTime;
 };
 
-//variable to keep track of the number of records
-int recordCount = 0;
-
-//create list of recordRequest structs
-
-
-//list for storing the recordRequest structs
-recordRequest recordRequestList[50];
-
 void SortLineData(char * buf)
 {
-    //sort the data from the line using the space character as a delimiter
+    /*sort the data from the line using the space character as a delimiter*/
+
     int *recordCountPtr = &recordCount;
 
     int i = 0;
@@ -54,9 +52,11 @@ void SortLineData(char * buf)
         i++;   
     }
 
+    //put data into respective record
     recordRequestList[recordCount].arrivalTime = record.arrivalTime;
     recordRequestList[recordCount].trackTime = record.trackTime;
     recordRequestList[recordCount].sectorRequest = record.sectorRequest;
+    //increment the recordCount
     (*recordCountPtr)++; 
 
 }
@@ -96,5 +96,14 @@ void ReadFromFile(char *filename)
         
     //close file
     fclose(f);
+}
+
+void FCFSAlgorithm()
+{
+    for (int i = 0; i < recordCount; i++)
+    {
+        
+    }
+    
 }
 
