@@ -152,6 +152,8 @@ void FCFSAlgorithm()
     the disk: 5/9 = 0.5*/
     float diskRotateTime = 0.5;
 
+    recordRequest FCFSRecordRequests[50];
+
     //sort the list according to arrival time
     SortRecordRequestList();
 
@@ -159,6 +161,8 @@ void FCFSAlgorithm()
     {
         //print the requested track and sector
         printf("\nTrack: %f\nSector: %f\n", recordRequestList[i].trackRequest, recordRequestList[i].sectorRequest);
+        printf("Current Track: %f\nCurrent Sector: %f\n", currentTrack, currentSector);
+        
         //the track request is the same as the current track position
         if (recordRequestList[i].trackRequest == currentTrack)
         {
@@ -182,7 +186,10 @@ void FCFSAlgorithm()
                 transferTime += ((10 - currentSector) + recordRequestList[i].sectorRequest) * sectorTransferTime;
                 //calculate the disk rotation time and add to total transfer time
                 transferTime += ((10 - currentSector) + recordRequestList[i].sectorRequest) * diskRotateTime;
-                
+
+                currentSector = recordRequestList[i].sectorRequest;
+                currentTrack = recordRequestList[i].trackRequest;
+
                 //update the current sector position
                 recordRequestList[i].responseTime += (seekTime + transferTime);
             }
@@ -199,7 +206,6 @@ void FCFSAlgorithm()
             if (recordRequestList[i].sectorRequest > currentSector)
             {   
                 //print current track and sector
-                printf("\nCurrent Track: %f\nCurrent Sector: %f\n", currentTrack, currentSector);
                 //calculate the seek time
                 seekTime = (12 + 0.1 * (recordRequestList[i].trackRequest - currentTrack));
 
@@ -207,7 +213,8 @@ void FCFSAlgorithm()
                 transferTime += ((recordRequestList[i].sectorRequest - currentSector) * sectorTransferTime);
                 //calculate the disk rotation time and add to total transfer time
                 transferTime += ((recordRequestList[i].sectorRequest - currentSector) * diskRotateTime);
-                
+
+                currentTrack = recordRequestList[i].trackRequest;                
                 //update the current sector position
                 currentSector = recordRequestList[i].sectorRequest;
 
@@ -258,6 +265,7 @@ void FCFSAlgorithm()
                 transferTime += ((recordRequestList[i].sectorRequest - currentSector) * diskRotateTime);
                 //update the current sector position
                 currentSector = recordRequestList[i].sectorRequest;
+                currentTrack = recordRequestList[i].trackRequest;
                 //update the current track position
                 recordRequestList[i].responseTime += (seekTime + transferTime);
             }
