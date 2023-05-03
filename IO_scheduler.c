@@ -3,6 +3,6 @@
 int main(int argc, char *argv[])
 {
     ReadFromFile("./recordRequests.txt");
-    FCFSAlgorithm();
-    
+    //FCFSAlgorithm();
+    ShortestSeekTimeFirstAlgorithm();
 }
